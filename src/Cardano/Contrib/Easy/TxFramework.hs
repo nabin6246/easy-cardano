@@ -143,7 +143,7 @@ txRedeemUtxoWithValidator utxo validator _data _redeemer =
 
 data TxResult=TxResult {
    txResultFee :: Lovelace ,
-   txResultIns::[(TxIn, Cardano.Api.Shelley.TxOut AlonzoEra)],
+   txResultIns::[(TxIn, Cardano.Api.Shelley.TxOut CtxUTxO AlonzoEra)],
    txResultBodyCotent::TxBodyContent BuildTx AlonzoEra,
    txResultBody:: TxBody AlonzoEra
 }
@@ -269,11 +269,11 @@ mkTxWithChange networkCtx (TxOperationBuilder change input output signature oPco
 
     toOuotput network (outCtx :: TxCtxOutput) =  do
       case outCtx of
-        AddrCtxOut (addr,value) -> pure $ TxOut addr (TxOutValue MultiAssetInAlonzoEra value) TxOutDatumHashNone
+        AddrCtxOut (addr,value) -> pure $ TxOut addr (TxOutValue MultiAssetInAlonzoEra value) TxOutDatumNone
         ScriptCtxOut (script,value,dataHash) -> pure $ TxOut (makeShelleyAddressInEra network (PaymentCredentialByScript  $  hashScript   (PlutusScript PlutusScriptV1   script)) NoStakeAddress) (TxOutValue MultiAssetInAlonzoEra  value ) (TxOutDatumHash ScriptDataInAlonzoEra dataHash)
         PkhCtxOut (pkh,value)-> case pkhToMaybeAddr network pkh of
           Nothing -> throw $ SomeError "PubKeyHash couldn't be converted to address"
-          Just aie -> pure $ TxOut aie (TxOutValue MultiAssetInAlonzoEra value) TxOutDatumHashNone
+          Just aie -> pure $ TxOut aie (TxOutValue MultiAssetInAlonzoEra value) TxOutDatumNone
     mkBody ins outs collateral pParam =
           (TxBodyContent {
             txIns=ins ,
@@ -286,7 +286,6 @@ mkTxWithChange networkCtx (TxOperationBuilder change input output signature oPco
             txValidityRange=(TxValidityNoLowerBound,TxValidityNoUpperBound ValidityNoUpperBoundInAlonzoEra),
             txMetadata=TxMetadataNone ,
             txAuxScripts=TxAuxScriptsNone,
-            txExtraScriptData=BuildTxWith TxExtraScriptDataNone ,
             txExtraKeyWits=TxExtraKeyWitnessesNone,
             txProtocolParams=BuildTxWith (Just  pParam),
             txWithdrawals=TxWithdrawalsNone,
@@ -408,12 +407,12 @@ mkBalancedBody  pParams (UTxO utxoMap)  txbody inputSum walletAddr signatureCoun
       existingLove = case  selectAsset (snd  matched) AdaAssetId   of
         Quantity n -> n
       --minimun Lovelace required in the change utxo
-      minLove = case  f $ TxOut walletAddr (TxOutValue MultiAssetInAlonzoEra change) TxOutDatumHashNone of
+      minLove = case  f $ TxOut walletAddr (TxOutValue MultiAssetInAlonzoEra change) TxOutDatumNone of
           Lovelace l -> l
       -- extra lovelace in this txout over the txoutMinLovelace
       extraLove txout = selectLove - minLoveInThisTxout
           where
-            minLoveInThisTxout=case  f $ TxOut walletAddr (TxOutValue MultiAssetInAlonzoEra $ val <>change) TxOutDatumHashNone of
+            minLoveInThisTxout=case  f $ TxOut walletAddr (TxOutValue MultiAssetInAlonzoEra $ val <>change) TxOutDatumNone of
                 Lovelace l -> l
             val= txOutValueToValue $ txOutValue txout
             selectLove = case selectAsset val AdaAssetId of { Quantity n -> n }
@@ -423,7 +422,7 @@ mkBalancedBody  pParams (UTxO utxoMap)  txbody inputSum walletAddr signatureCoun
       existingLove = case  selectAsset change AdaAssetId   of
         Quantity n -> n
       --minimun Lovelace required in the change utxo
-      minLove = case  f $ TxOut walletAddr (TxOutValue MultiAssetInAlonzoEra change) TxOutDatumHashNone of
+      minLove = case  f $ TxOut walletAddr (TxOutValue MultiAssetInAlonzoEra change) TxOutDatumNone of
           Lovelace l -> l
 
 
@@ -483,13 +482,11 @@ mkBalancedBody  pParams (UTxO utxoMap)  txbody inputSum walletAddr signatureCoun
             txInsCollateral=txInsCollateral txbody,
             txOuts=  if nullValue change
                   then initialOuts
-                  else initialOuts ++ [ TxOut  walletAddr (TxOutValue MultiAssetInAlonzoEra change) TxOutDatumHashNone]  ,
+                  else initialOuts ++ [ TxOut  walletAddr (TxOutValue MultiAssetInAlonzoEra change) TxOutDatumNone]  ,
             txFee=TxFeeExplicit TxFeesExplicitInAlonzoEra  fee,
-            -- txValidityRange=(TxValidityNoLowerBound,TxValidityNoUpperBound ValidityNoUpperBoundInAlonzoEra),
             txValidityRange = txValidityRange txbody,
             txMetadata=txMetadata txbody ,
             txAuxScripts=txAuxScripts txbody,
-            txExtraScriptData=txExtraScriptData txbody ,
             txExtraKeyWits=txExtraKeyWits txbody,
             txProtocolParams= txProtocolParams   txbody,
             txWithdrawals=txWithdrawals txbody,

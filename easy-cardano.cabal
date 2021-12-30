@@ -22,17 +22,13 @@ maintainer:         Sudip Bhattarai
 
 library
   exposed-modules:
-
     Cardano.Contrib.Easy.Util
+    Cardano.Contrib.Easy.TxBodyUtils
     Cardano.Contrib.Easy.Api
     Cardano.Contrib.Easy.Context
     Cardano.Contrib.Easy.Error
     Cardano.Contrib.Easy.TxFramework
     Cardano.Contrib.Easy.Parsers
-  other-modules:
-
-
-    -- Plutus.Contract.Wallet.Utils
   hs-source-dirs: src
   build-depends:
       base >= 4.9 && <5
@@ -44,7 +40,7 @@ library
     , directory
     , aeson
     , text-conversions
-    , cardano-api
+    , cardano-api == 1.32.1
     , cardano-ledger-alonzo
     , cardano-slotting
     , shelley-spec-ledger
@@ -52,3 +48,9 @@ library
     , plutus-ledger
     , plutus-tx
     , ouroboros-network
+    , cardano-ledger-shelley
+    , cardano-ledger-shelley-ma
+    , cardano-ledger-core
+    , cardano-crypto-class
+    , ouroboros-consensus-shelley
+    , base16-bytestring

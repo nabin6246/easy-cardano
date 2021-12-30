@@ -1,12 +1,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Cardano.Contrib.Easy.Util
 where
 
 import Cardano.Api
 import Data.ByteString (ByteString,readFile)
-import qualified Cardano.Api.Shelley as Shelley
+import qualified Cardano.Api.Shelley as ShelleyApi
 import Ledger (PubKeyHash (PubKeyHash), AssetClass)
 import qualified Data.Set as Set
 import Control.Exception (try, throw)
@@ -63,7 +65,7 @@ readSignKey file = do
 getDefaultSignKey :: IO (SigningKey PaymentKey)
 getDefaultSignKey= getWorkPath ["default.skey"] >>= readSignKey
 
-skeyToAddr:: SigningKey PaymentKey -> NetworkId -> Shelley.Address ShelleyAddr
+skeyToAddr:: SigningKey PaymentKey -> NetworkId -> ShelleyApi.Address ShelleyAddr
 skeyToAddr skey network =
   makeShelleyAddress  network  credential NoStakeAddress
   where
@@ -253,17 +255,17 @@ nullValue v = not $ any (\(aid,Quantity q) -> q>0) (valueToList v)
 positiveValue :: Value -> Bool
 positiveValue v = not $ any (\(aid,Quantity q) -> q<0) (valueToList v)
 
-calculateTxoutMinLovelace :: TxOut AlonzoEra -> ProtocolParameters -> Maybe Lovelace
-calculateTxoutMinLovelace txout pParams=do
-  Lovelace costPerWord <- protocolParamUTxOCostPerWord pParams
-  Just $ Lovelace  $ Alonzo.utxoEntrySize (toShelleyTxOut ShelleyBasedEraAlonzo  txout) * costPerWord
+-- calculateTxoutMinLovelace :: TxOut CtxTx AlonzoEra -> ProtocolParameters -> Maybe Lovelace
+-- calculateTxoutMinLovelace txout pParams=do
+--   Lovelace costPerWord <- protocolParamUTxOCostPerWord pParams
+--   Just $ Lovelace  $ Alonzo.utxoEntrySize (toShelleyTxOut ShelleyBasedEraAlonzo  txout) * costPerWord
 
-calculateTxoutMinLovelaceFunc :: ProtocolParameters  -> Maybe ( TxOut AlonzoEra -> Lovelace)
+calculateTxoutMinLovelaceFunc :: ProtocolParameters  -> Maybe ( TxOut CtxTx AlonzoEra -> Lovelace)
 calculateTxoutMinLovelaceFunc pParams = do
   Lovelace costPerWord <- protocolParamUTxOCostPerWord pParams
   pure $ f costPerWord
   where
-    f cpw txout =Lovelace  $ Alonzo.utxoEntrySize (toShelleyTxOut ShelleyBasedEraAlonzo  txout) * cpw
+    f cpw txout =Lovelace  $ Alonzo.utxoEntrySize (toShelleyTxOutAny ShelleyBasedEraAlonzo txout) * cpw
 
 toPlutusAssetClass :: AssetId -> AssetClass
 toPlutusAssetClass (AssetId (PolicyId hash) (AssetName name)) = AssetClass (CurrencySymbol $ toBuiltin $ serialiseToRawBytes hash , TokenName $ toBuiltin name)
